@@ -1,0 +1,48 @@
+.wrap {
+  /* 仅作角标定位锚点，不加任何视觉样式——assistant 内容按默认样式渲染 */
+  position: relative;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.badge {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 16px;
+  color: #3b6ea5;
+  background: #e3eefc;
+  border: 1px solid #c3dbf5;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.reasoning {
+  font-size: 12px;
+  color: var(--dsw-text-tertiary, #888);
+}
+
+.toolCall {
+  font-family: var(--dsw-font-mono, monospace);
+  font-size: 12px;
+  color: var(--dsw-text-secondary, #666);
+}
+
+.image {
+  font-size: 12px;
+  color: var(--dsw-text-secondary, #666);
+}
+
+.other {
+  font-size: 12px;
+  color: var(--dsw-text-tertiary, #888);
+}

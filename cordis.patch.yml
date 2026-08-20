@@ -1,0 +1,5 @@
+# dsh-ui-shadow-token bundle: inserts its own client plugin row.
+# Applied when a profile lists this bundle in dsh.profile.bundles.
+- insert:
+    - id: dsh-ui-shadow-token
+      name: dsh-ui-shadow-token
