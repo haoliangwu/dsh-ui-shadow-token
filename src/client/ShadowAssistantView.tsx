@@ -1,76 +1,61 @@
 /**
- * Shadow renderer for the `assistant-step` kind: renders the stock assistant
- * content (text blocks via MarkdownText, others as fallback rows) inside a
- * wrapper that adds a per-message token badge when usage is available.
+ * Shadow renderer for the `assistant-step` kind: delegates to the full
+ * AssistantNodeView (local copy for external distribution) inside a wrapper
+ * that adds a per-message token badge when usage is available.
  *
- * Props arrive through the four shares exactly like the default
- * AssistantNodeView — ChatNodeViewProps<Kind> is the exported contract from
- * ui-conversation's `/client` entry. `node.data` is AssistantChatData:
- * status/turn/step/blocks/time/usage?/finalNode?. `usage` is typed `unknown`
- * and carries a TokenUsage at runtime; read it with the same defensive
- * narrowing the in-repo turn-metrics.ts uses.
+ * Props mirror the in-repo @deepseek-ai/dsh-ui-shadow-token wrapper:
+ * readUsage with inputTokens/outputTokens (+ promptTokens/completionTokens,
+ * input/output, totalTokens fallbacks) and t('tokens', {input,output}).
  */
 import { memo } from 'react'
-import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { AssistantBlock } from '@deepseek-ai/dsh-client-runtime/client'
+import { AssistantNodeView } from './AssistantNodeView.tsx'
 import css from './ShadowAssistantView.module.css'
 
 /**
  * Full props of the shadowed `assistant-step` entry. ChatNodeViewProps bakes
- * PropsLocale<'conversation'> (the default entry's namespace); this entry
- * registers under its own `shadow-token` namespace, so compose the same
- * shares with the matching locale.
+ * PropsLocale<'conversation'>; this entry registers under its own
+ * `shadow-token` namespace, so compose the same shares with the matching locale.
  */
 type ShadowTokenProps = PropsRuntime<'conversation.chat.node', 'assistant-step'> & PropsLocale<'shadow-token'>
 
-/** Defensive token usage read, mirroring ui-conversation turn-metrics.ts. */
-interface UsageLike {
-  inputTokens?: number
-  outputTokens?: number
-}
-
-function readUsage(usage: unknown): UsageLike | undefined {
-  if (typeof usage !== 'object' || usage === null) return undefined
-  const value = usage as UsageLike
-  return typeof value.inputTokens === 'number' && typeof value.outputTokens === 'number'
-    ? value
+/**
+ * Extract token counts from provider usage shapes.
+ * @param usage - raw usage object from finalNode or node data.
+ * @returns normalized counts or undefined when absent.
+ */
+function readUsage(usage: unknown): { total: number | undefined; input: number | undefined; output: number | undefined } | undefined {
+  if (usage === null || usage === undefined) return undefined
+  if (typeof usage !== 'object') return undefined
+  const u = usage as Record<string, unknown>
+  const input = typeof u.inputTokens === 'number' ? u.inputTokens
+    : typeof u.promptTokens === 'number' ? u.promptTokens
+    : typeof u.input === 'number' ? u.input
     : undefined
+  const output = typeof u.outputTokens === 'number' ? u.outputTokens
+    : typeof u.completionTokens === 'number' ? u.completionTokens
+    : typeof u.output === 'number' ? u.output
+    : undefined
+  const total = typeof u.totalTokens === 'number' ? u.totalTokens
+    : typeof u.total_tokens === 'number' ? u.total_tokens
+    : typeof u.total === 'number' ? u.total
+    : input !== undefined && output !== undefined ? input + output
+    : undefined
+  if (input === undefined && output === undefined && total === undefined) return undefined
+  return { input, output, total }
 }
 
-/** Render one assistant block; text uses MarkdownText, the rest are fallback rows. */
-function BlockRow({ block, streaming }: { block: AssistantBlock; streaming: boolean }) {
-  switch (block.kind) {
-    case 'text':
-      return <MarkdownText text={block.text} streaming={streaming} />
-    case 'reasoning':
-      return <div className={css.reasoning}>reasoning · {block.text.length} chars</div>
-    case 'tool-call':
-      return <div className={css.toolCall}>🛠 {block.name}</div>
-    case 'image':
-      return <div className={css.image}>🖼 image attachment</div>
-    default:
-      return <div className={css.other}>unknown block</div>
-  }
-}
-
-/** The shadowed assistant-step renderer with the token badge. */
-export const ShadowAssistantView = memo(function ShadowAssistantView({
-  node, t,
-}: ShadowTokenProps) {
-  const data = node.data
-  const usage = readUsage(data.finalNode?.usage ?? data.usage)
+/** The shadowed assistant-step renderer with the token badge — delegates to the full view. */
+export const ShadowAssistantView = memo(function ShadowAssistantView(props: ShadowTokenProps) {
+  const data = (props as unknown as { node: { data: { finalNode?: { usage?: unknown }; usage?: unknown } } }).node.data
+  const usage = readUsage((data as { finalNode?: { usage?: unknown }; usage?: unknown }).finalNode?.usage ?? (data as { usage?: unknown }).usage)
   return (
     <div className={css.wrap}>
-      <div className={css.body}>
-        {data.blocks.map((block, index) => (
-          <BlockRow key={index} block={block} streaming={data.status === 'running'} />
-        ))}
-      </div>
+      <AssistantNodeView {...(props as unknown as Parameters<typeof AssistantNodeView>[0])} />
       {usage !== undefined && (
-        <div className={css.badge} title={t('tooltip')}>
-          ⚡ {t('tokens', { output: usage.outputTokens, input: usage.inputTokens })}
-        </div>
+        <span className={css.badge} title={(props.t as unknown as (k:string)=>string)('tooltip')}>
+          {(props.t as unknown as (key: string, params?: Record<string, unknown>) => string)('tokens', { input: usage.input ?? 0, output: usage.output ?? 0 })}
+        </span>
       )}
     </div>
   )
