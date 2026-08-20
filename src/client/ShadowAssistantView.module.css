@@ -13,16 +13,9 @@
   position: absolute;
   top: -8px;
   right: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 1px 8px;
   font-size: 11px;
   line-height: 16px;
-  color: var(--dsw-alias-label-secondary);
-  background: var(--dsw-alias-bg-overlay);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 999px;
+  color: var(--dsw-alias-label-tertiary);
   white-space: nowrap;
 }
 
