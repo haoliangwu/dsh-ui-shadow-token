@@ -1,6 +1,7 @@
 .wrap {
   /* 仅作角标定位锚点，不加任何视觉样式——assistant 内容按默认样式渲染 */
   position: relative;
+  padding-top: 28px;
 }
 
 .body {
@@ -11,12 +12,16 @@
 
 .badge {
   position: absolute;
-  top: -8px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 11px;
   line-height: 16px;
   color: var(--dsw-alias-label-tertiary);
-  white-space: nowrap;
 }
 
 .reasoning {
